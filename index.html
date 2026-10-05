@@ -62,6 +62,7 @@
              autocomplete="new-password" class="hidden">
       <div id="pw-error" class="error hidden"></div>
       <button id="pw-go" class="btn-primary">Continue</button>
+      <button id="pw-forget" class="btn-link small">Password bhool gaye?</button>
       <button id="pw-back" class="btn-link">← Username wapas</button>
     </div>
   </div>
@@ -86,6 +87,7 @@
     <header id="main-header">
       <div class="header-title">💬 KalkiChat <span class="web-tag">Web</span></div>
       <div class="header-actions">
+        <button id="btn-admin" title="All users" class="hidden">👥</button>
         <button id="btn-newchat" title="Nayi chat">✚</button>
         <button id="btn-logout" title="Logout">⏻</button>
       </div>
@@ -136,6 +138,36 @@
       <div class="row">
         <button id="newchat-go" class="btn-primary">Chat kholo</button>
         <button id="newchat-cancel" class="btn-link">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Admin: all users -->
+  <div id="modal-users" class="modal hidden">
+    <div class="card wide">
+      <h3>All users</h3>
+      <div id="users-list"></div>
+      <div class="row">
+        <button id="users-close" class="btn-link">Band karo</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Forget password -->
+  <div id="modal-forget" class="modal hidden">
+    <div class="card">
+      <h3>Password reset karo</h3>
+      <p class="muted small" id="forget-user-label"></p>
+      <input id="forget-old" type="password" placeholder="Purana password"
+             autocomplete="current-password">
+      <input id="forget-new" type="password" placeholder="Naya password (min 6)"
+             autocomplete="new-password">
+      <input id="forget-new2" type="password" placeholder="Naya password dobara"
+             autocomplete="new-password">
+      <div id="forget-error" class="error hidden"></div>
+      <div class="row">
+        <button id="forget-go" class="btn-primary">Password badlo</button>
+        <button id="forget-cancel" class="btn-link">Cancel</button>
       </div>
     </div>
   </div>

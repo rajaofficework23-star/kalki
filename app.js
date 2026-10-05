@@ -65,6 +65,7 @@ var S = {
   sessionId: null,
   timers: [], unsubs: [],
   myProfile: {},
+  isAdmin: false,           // true when admins/master.uid == my identity
 };
 var LS = {
   uid: 'kc_uid', username: 'kc_username', linkedUid: 'kc_linked_uid',
@@ -241,11 +242,52 @@ function showPasswordScreen(isSetup) {
     : pendingUsername + ' ke liye password dalo';
   $('pw-input').value = ''; $('pw-input2').value = '';
   $('pw-input2').classList.toggle('hidden', !isSetup);
+  // forget-password only makes sense for an existing account
+  $('pw-forget').classList.toggle('hidden', !!isSetup);
   hideErr('pw-error');
   $('pw-go').onclick = isSetup ? passwordSetup : passwordVerify;
   showScreen('screen-password');
   setTimeout(function () { $('pw-input').focus(); }, 50);
 }
+
+/* Forget password (self-service): old password + new password + confirm. */
+$('pw-forget').onclick = function () {
+  if (pendingIsNew) {
+    showErr('pw-error', 'Pehle account banao, phir reset karna');
+    return;
+  }
+  $('forget-user-label').textContent = (pendingUsername || '') + ' ka password reset karo';
+  $('forget-old').value = ''; $('forget-new').value = ''; $('forget-new2').value = '';
+  hideErr('forget-error');
+  $('modal-forget').classList.remove('hidden');
+  setTimeout(function () { $('forget-old').focus(); }, 50);
+};
+$('forget-cancel').onclick = function () {
+  $('modal-forget').classList.add('hidden');
+};
+$('forget-go').onclick = async function () {
+  hideErr('forget-error');
+  var oldPw = $('forget-old').value;
+  var np1 = $('forget-new').value, np2 = $('forget-new2').value;
+  if (np1.length < 6) { showErr('forget-error', 'Naya password min 6 characters'); return; }
+  if (np1 !== np2) { showErr('forget-error', 'Naya password match nahi ho raha'); return; }
+  $('forget-go').disabled = true;
+  try {
+    // same target as passwordVerify: the identity doc holding the pwd
+    var targetUid = pendingLinkedUid || pendingUid;
+    var userDoc = (await db.collection('users').doc(targetUid).get()).data();
+    if (!userDoc) { showErr('forget-error', 'User nahi mila'); return; }
+    var ok = await verifyPwd(oldPw, userDoc.pwd || null);
+    if (!ok) { showErr('forget-error', 'Purana password galat hai'); return; }
+    await db.collection('users').doc(targetUid).update({ pwd: await makePwdVerifier(np1) });
+    $('modal-forget').classList.add('hidden');
+    toast('Password badal gaya, ab login karo');
+  } catch (e) {
+    showErr('forget-error', 'Network error, dobara try karo');
+  } finally {
+    $('forget-go').disabled = false;
+  }
+};
 $('pw-back').onclick = function () { showUsernameScreen(); };
 $('pw-input').addEventListener('keydown', function (e) {
   if (e.key === 'Enter') $('pw-go').click();
@@ -491,6 +533,18 @@ function enterMain() {
   subscribeStatusList();
   subscribeCasts();
   switchTab('chats');
+  checkAdmin(); // fire-and-forget: shows the admin button if I'm the admin
+}
+
+/* Admin check: admins/master.uid == my identity uid. */
+async function checkAdmin() {
+  S.isAdmin = false;
+  try {
+    var doc = await db.collection('admins').doc('master').get();
+    if (doc.exists && doc.data().uid === (S.linkedUid || S.uid)) S.isAdmin = true;
+  } catch (e) { /* not admin or offline */ }
+  var b = $('btn-admin');
+  if (b) b.classList.toggle('hidden', !S.isAdmin);
 }
 function routeAfterUnlock() {
   // called after PIN unlock when session state is ambiguous
@@ -915,6 +969,129 @@ $('newchat-go').onclick = async function () {
   }
 };
 
+/* ============================== admin panel ============================== */
+var openUserMenuEl = null;
+function closeUserMenu() {
+  if (openUserMenuEl) { openUserMenuEl.remove(); openUserMenuEl = null; }
+}
+document.addEventListener('click', closeUserMenu);
+
+$('btn-admin').onclick = function () {
+  if (!S.isAdmin) return;
+  $('modal-users').classList.remove('hidden');
+  loadUsersList();
+};
+$('users-close').onclick = function () {
+  closeUserMenu();
+  $('modal-users').classList.add('hidden');
+};
+
+async function loadUsersList() {
+  var el = $('users-list');
+  el.innerHTML = '<p class="muted">Load ho raha hai...</p>';
+  try {
+    var snap = await db.collection('users').limit(200).get();
+    if (snap.empty) { el.innerHTML = '<p class="muted">Koi user nahi</p>'; return; }
+    el.innerHTML = '';
+    var rows = [];
+    snap.forEach(function (d) { rows.push({ id: d.id, data: d.data() || {} }); });
+    // named users first, then device sessions
+    rows.sort(function (a, b) {
+      var an = a.data.username ? 0 : 1, bn = b.data.username ? 0 : 1;
+      return an - bn;
+    });
+    rows.forEach(function (r) { el.appendChild(userRow(r.id, r.data)); });
+  } catch (e) {
+    el.innerHTML = '<p class="muted">Load nahi hua, dobara try karo</p>';
+  }
+}
+
+function userRow(uid, data) {
+  var row = document.createElement('div');
+  row.className = 'user-row';
+  var left = document.createElement('div');
+  var nm = document.createElement('span');
+  nm.className = 'uname';
+  nm.textContent = data.username || '(device session)';
+  left.appendChild(nm);
+  if (!data.username && data.linkedTo) {
+    var sub = document.createElement('span');
+    sub.className = 'usub';
+    sub.textContent = 'linked device';
+    left.appendChild(sub);
+  }
+  var wrap = document.createElement('div');
+  wrap.className = 'user-menu-wrap';
+  var dots = document.createElement('button');
+  dots.className = 'user-dots';
+  dots.textContent = '⋮';
+  dots.title = 'Options';
+  dots.onclick = function (ev) {
+    ev.stopPropagation();
+    toggleUserMenu(wrap, uid, data);
+  };
+  wrap.appendChild(dots);
+  row.appendChild(left);
+  row.appendChild(wrap);
+  return row;
+}
+
+function toggleUserMenu(wrap, uid, data) {
+  if (openUserMenuEl && openUserMenuEl.parentNode === wrap) {
+    closeUserMenu(); return;
+  }
+  closeUserMenu();
+  var menu = document.createElement('div');
+  menu.className = 'user-menu';
+  var b1 = document.createElement('button');
+  b1.textContent = 'Reset password';
+  b1.onclick = function () { closeUserMenu(); adminResetPassword(uid); };
+  var b2 = document.createElement('button');
+  b2.textContent = 'Remove user';
+  b2.className = 'danger';
+  b2.onclick = function () { closeUserMenu(); adminRemoveUser(uid, data); };
+  menu.appendChild(b1);
+  menu.appendChild(b2);
+  wrap.appendChild(menu);
+  openUserMenuEl = menu;
+}
+
+async function adminResetPassword(uid) {
+  if (!S.isAdmin) return;
+  if (!confirm('Is user ka password 123456 kar dun?')) return;
+  try {
+    var v = await makePwdVerifier('123456');
+    await db.collection('users').doc(uid).update({ pwd: v });
+    toast('Password 123456 kar diya');
+  } catch (e) {
+    toast('Reset nahi hua, dobara try karo');
+  }
+}
+
+async function adminRemoveUser(uid, data) {
+  if (!S.isAdmin) return;
+  var name = data.username || uid.slice(0, 8);
+  if (!confirm(name + ' ko hata dun? Uska username claim bhi delete hoga.')) return;
+  try {
+    var lower = data.usernameLower || (data.username || '').toLowerCase();
+    await db.collection('users').doc(uid).delete();
+    if (lower) {
+      try { await db.collection('usernames').doc(lower).delete(); } catch (e) {}
+    }
+    // also remove linked device sessions of this identity
+    try {
+      var sess = await db.collection('users').where('linkedTo', '==', uid).get();
+      var batch = db.batch();
+      sess.forEach(function (d) { batch.delete(d.ref); });
+      await batch.commit();
+    } catch (e) {}
+    toast('User hata diya');
+    loadUsersList();
+  } catch (e) {
+    toast('Hata nahi paya, dobara try karo');
+  }
+}
+
 /* ============================== status ============================== */
 function subscribeStatusList() {
   var q = db.collection('statuses')
@@ -990,6 +1167,7 @@ async function doLogout(forgetPin) {
   if (forgetPin) lsDel(LS.pin);
   // reset memory
   S.uid = null; S.authUid = null; S.username = null; S.usernameLower = null;
+  S.isAdmin = false;
   S.linkedUid = null; S.priv32 = null; S.linkedPriv32 = null;
   S.pubB64 = null; S.groupKeys = {}; S.chats = []; S.groups = [];
   S.open = null; S.sessionId = null;
