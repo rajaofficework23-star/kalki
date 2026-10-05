@@ -52,6 +52,8 @@ function hideErr(id) { $(id).classList.add('hidden'); }
 /* ============================== state ============================== */
 var S = {
   uid: null, username: null, usernameLower: null,
+  authUid: null,             // firebase anonymous uid; S.uid is the IDENTITY uid
+                            // (for linked logins S.uid = main claimed uid, authUid = this device's anon uid)
   linkedUid: null,          // android uid when this web login is linked to a phone identity
   priv32: null,             // my web HPKE private key
   linkedPriv32: null,       // imported android HPKE private key (backup restore)
@@ -66,6 +68,7 @@ var S = {
 };
 var LS = {
   uid: 'kc_uid', username: 'kc_username', linkedUid: 'kc_linked_uid',
+  authUid: 'kc_auth_uid',
   keyOk: 'kc_key_ok', keyIssue: 'kc_key_issue', lastSeen: 'kc_last_seen',
   pin: 'kc_pin', priv: 'kc_priv_b64', linkedPriv: 'kc_linked_priv_b64',
   backupDone: 'kc_backup_done',
@@ -301,7 +304,7 @@ async function passwordSetup() {
       t.set(db.collection('users').doc(uid), userDoc);
     });
     // save session
-    S.uid = uid; S.username = pendingUsername; S.usernameLower = lower;
+    S.uid = uid; S.authUid = uid; S.username = pendingUsername; S.usernameLower = lower;
     S.priv32 = priv; S.pubB64 = pubB64; S.linkedUid = null;
     lsSet(LS.priv, KCrypto.bytesToB64(priv));
     persistSession();
@@ -340,15 +343,27 @@ async function passwordVerify() {
     }
     var pub = KCrypto.x25519(priv, KCrypto.BASE9);
     pubB64 = KCrypto.bytesToB64(KCrypto.serializeHpkePublicKeyset(pub, randKeyId()));
-    // upsert my web user doc (linked identity keeps phone's claim untouched)
+    // upsert my per-device session doc keyed by ANONYMOUS uid (never carries
+    // username/usernameLower for linked logins — kills duplicate identities).
+    // Primary login keeps the old behavior (username + pwd verifier on the doc).
     var lower = pendingUsername.toLowerCase();
     var now = Date.now();
-    var doc = { username: pendingUsername, usernameLower: lower,
-                hpkePublicKey: pubB64, createdAt: now, isWeb: true };
-    if (pendingLinkedUid) doc.linkedTo = pendingLinkedUid;
-    if (!userDoc.pwd) doc.pwd = await makePwdVerifier(pw); // legacy migration
+    var doc = { linkedTo: pendingLinkedUid || null,
+                hpkePublicKey: pubB64, isWeb: true, createdAt: now };
+    if (!pendingLinkedUid) {
+      doc.username = pendingUsername; doc.usernameLower = lower;
+      if (!userDoc.pwd) doc.pwd = await makePwdVerifier(pw); // legacy migration
+    }
     await db.collection('users').doc(uid).set(doc, { merge: true });
-    S.uid = uid; S.username = pendingUsername; S.usernameLower = lower;
+    if (pendingLinkedUid) {
+      // keep the MAIN identity doc pointing at this session's active key so
+      // new chats encrypt with a key this device can open
+      await db.collection('users').doc(pendingLinkedUid)
+        .set({ hpkePublicKey: pubB64 }, { merge: true });
+    }
+    S.authUid = uid;
+    if (pendingLinkedUid) { S.uid = pendingLinkedUid; } else { S.uid = uid; }
+    S.username = pendingUsername; S.usernameLower = lower;
     S.priv32 = priv; S.pubB64 = pubB64;
     S.linkedUid = pendingLinkedUid;
     persistSession();
@@ -365,6 +380,7 @@ function randKeyId() {
 }
 function persistSession() {
   lsSet(LS.uid, S.uid);
+  lsSet(LS.authUid, S.authUid);
   lsSet(LS.username, S.username);
   if (S.linkedUid) lsSet(LS.linkedUid, S.linkedUid); else lsDel(LS.linkedUid);
 }
@@ -445,7 +461,7 @@ function genSid() {
 }
 async function createSession() {
   S.sessionId = genSid();
-  var ref = db.collection('sessions').doc(S.uid)
+  var ref = db.collection('sessions').doc(S.authUid)
                 .collection('devices').doc(S.sessionId);
   try {
     await ref.set({ device: 'Web', label: uaSnippet(),
@@ -481,7 +497,7 @@ function routeAfterUnlock() {
   var uid = lsGet(LS.uid);
   if (!uid || lsGet(LS.keyOk) !== '1') { showScreen('screen-key'); return; }
   // restore in-memory session from localStorage
-  S.uid = uid; S.username = lsGet(LS.username);
+  S.uid = uid; S.authUid = lsGet(LS.authUid); S.username = lsGet(LS.username);
   S.usernameLower = (S.username || '').toLowerCase();
   S.linkedUid = lsGet(LS.linkedUid);
   var privB64 = lsGet(LS.priv);
@@ -499,7 +515,7 @@ function routeAfterUnlock() {
   if (!S.priv32) { showScreen('screen-key'); return; }
   ensureAnonAuth().then(function (user) {
     // anonymous auth must restore the SAME uid; otherwise the session is stale
-    if (!user || user.uid !== S.uid) { showScreen('screen-key'); return; }
+    if (!user || user.uid !== S.authUid) { showScreen('screen-key'); return; }
     enterMain();
   }).catch(function () { showScreen('screen-key'); });
 }
@@ -961,7 +977,7 @@ async function doLogout(forgetPin) {
   // best-effort: delete my session doc so the phone sees me gone
   try {
     if (S.uid && S.sessionId) {
-      await db.collection('sessions').doc(S.uid)
+      await db.collection('sessions').doc(S.authUid)
         .collection('devices').doc(S.sessionId).delete();
     }
   } catch (e) {}
@@ -969,11 +985,11 @@ async function doLogout(forgetPin) {
   try { await auth.signOut(); } catch (e) {}
   try { sessionStorage.clear(); } catch (e) {}
   // clear local app state (PIN verifier is kept as the device lock unless forgotten)
-  [LS.uid, LS.username, LS.linkedUid, LS.keyOk, LS.keyIssue,
+  [LS.uid, LS.authUid, LS.username, LS.linkedUid, LS.keyOk, LS.keyIssue,
    LS.priv, LS.linkedPriv, LS.backupDone].forEach(lsDel);
   if (forgetPin) lsDel(LS.pin);
   // reset memory
-  S.uid = null; S.username = null; S.usernameLower = null;
+  S.uid = null; S.authUid = null; S.username = null; S.usernameLower = null;
   S.linkedUid = null; S.priv32 = null; S.linkedPriv32 = null;
   S.pubB64 = null; S.groupKeys = {}; S.chats = []; S.groups = [];
   S.open = null; S.sessionId = null;
