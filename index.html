@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KalkiChat Web</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div id="app">
+
+  <!-- PIN gate (fresh tab) -->
+  <div id="screen-pin" class="screen hidden">
+    <div class="card">
+      <div class="logo">💬</div>
+      <h2>KalkiChat Web</h2>
+      <p class="muted" id="pin-sub">6-digit Web PIN dalo</p>
+      <input id="pin-input" type="password" inputmode="numeric" maxlength="6"
+             placeholder="••••••" autocomplete="off">
+      <div id="pin-error" class="error hidden"></div>
+      <button id="pin-go" class="btn-primary">Unlock</button>
+      <button id="pin-reset" class="btn-link hidden">PIN bhool gaye? Logout karke dobara login karo</button>
+    </div>
+  </div>
+
+  <!-- Key login -->
+  <div id="screen-key" class="screen hidden">
+    <div class="card">
+      <div class="logo">💬</div>
+      <h2>KalkiChat Web</h2>
+      <p class="muted">Apni key dalo (phone wali key hi chalegi)</p>
+      <input id="key-input" type="text" placeholder="kalki-XXXX..." autocomplete="off"
+             autocapitalize="off" spellcheck="false">
+      <div id="key-error" class="error hidden"></div>
+      <button id="key-go" class="btn-primary">Login</button>
+      <p class="muted small" id="key-days"></p>
+    </div>
+  </div>
+
+  <!-- Username -->
+  <div id="screen-username" class="screen hidden">
+    <div class="card">
+      <div class="logo">👤</div>
+      <h2 id="username-title">Username</h2>
+      <p class="muted" id="username-sub">Apna username likho</p>
+      <input id="username-input" type="text" placeholder="username"
+             autocomplete="off" autocapitalize="off" spellcheck="false">
+      <div id="username-error" class="error hidden"></div>
+      <button id="username-go" class="btn-primary">Continue</button>
+      <button id="username-back" class="btn-link">← Key wapas</button>
+    </div>
+  </div>
+
+  <!-- Password setup / verify -->
+  <div id="screen-password" class="screen hidden">
+    <div class="card">
+      <div class="logo">🔑</div>
+      <h2 id="pw-title">Password set karo</h2>
+      <p class="muted" id="pw-sub">Min 6 characters. Ye password har naye browser me lagega.</p>
+      <input id="pw-input" type="password" placeholder="Password" autocomplete="new-password">
+      <input id="pw-input2" type="password" placeholder="Password dobara"
+             autocomplete="new-password" class="hidden">
+      <div id="pw-error" class="error hidden"></div>
+      <button id="pw-go" class="btn-primary">Continue</button>
+      <button id="pw-back" class="btn-link">← Username wapas</button>
+    </div>
+  </div>
+
+  <!-- Backup restore option -->
+  <div id="screen-restore" class="screen hidden">
+    <div class="card">
+      <div class="logo">📦</div>
+      <h2>Purani chats lao?</h2>
+      <p class="muted">Agar phone me backup banaya tha, to Backup PIN dalo —
+         purani chats yahin dikhengi.</p>
+      <input id="backup-pin" type="password" inputmode="numeric"
+             placeholder="Backup PIN" autocomplete="off">
+      <div id="backup-error" class="error hidden"></div>
+      <button id="backup-go" class="btn-primary">Restore karo</button>
+      <button id="backup-skip" class="btn-link">Skip — nayi shuruaat</button>
+    </div>
+  </div>
+
+  <!-- Main -->
+  <div id="screen-main" class="screen hidden">
+    <header id="main-header">
+      <div class="header-title">💬 KalkiChat <span class="web-tag">Web</span></div>
+      <div class="header-actions">
+        <button id="btn-newchat" title="Nayi chat">✚</button>
+        <button id="btn-logout" title="Logout">⏻</button>
+      </div>
+    </header>
+    <nav id="tabs">
+      <button data-tab="chats" class="active">Chats</button>
+      <button data-tab="groups">Groups</button>
+      <button data-tab="status">Status</button>
+      <button data-tab="casts">📢</button>
+    </nav>
+    <div id="tab-panels">
+      <div id="panel-chats" class="panel"><div id="chat-list"></div></div>
+      <div id="panel-groups" class="panel hidden"><div id="group-list"></div></div>
+      <div id="panel-status" class="panel hidden">
+        <button id="btn-status-add" class="btn-primary small">+ Status lagao</button>
+        <div id="status-list"></div>
+      </div>
+      <div id="panel-casts" class="panel hidden"><div id="cast-list"></div></div>
+    </div>
+  </div>
+
+  <!-- Conversation -->
+  <div id="screen-chat" class="screen hidden">
+    <header id="chat-header">
+      <button id="chat-back">←</button>
+      <div id="chat-peer">
+        <div id="chat-name">—</div>
+        <div id="chat-sub" class="muted small">—</div>
+      </div>
+    </header>
+    <div id="readonly-banner" class="hidden">📖 Purani chat — sirf padh sakte ho (phone se reply karo)</div>
+    <div id="messages"></div>
+    <div id="typing-line" class="muted small hidden">typing…</div>
+    <div id="composer">
+      <input id="msg-input" type="text" placeholder="Message likho…" autocomplete="off">
+      <button id="msg-send" class="btn-primary">➤</button>
+    </div>
+  </div>
+
+  <!-- New chat modal -->
+  <div id="modal-newchat" class="modal hidden">
+    <div class="card">
+      <h3>Nayi chat</h3>
+      <p class="muted small">Saamne wale ka username likho</p>
+      <input id="newchat-user" type="text" placeholder="username" autocomplete="off"
+             autocapitalize="off" spellcheck="false">
+      <div id="newchat-error" class="error hidden"></div>
+      <div class="row">
+        <button id="newchat-go" class="btn-primary">Chat kholo</button>
+        <button id="newchat-cancel" class="btn-link">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" class="hidden"></div>
+</div>
+
+<script src="vendor/firebase-app-compat.js"></script>
+<script src="vendor/firebase-auth-compat.js"></script>
+<script src="vendor/firebase-firestore-compat.js"></script>
+<script src="firebase-config.js"></script>
+<script src="crypto.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
