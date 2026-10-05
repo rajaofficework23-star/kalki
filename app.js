@@ -539,13 +539,27 @@ function enterMain() {
 /* Admin check: admins/master.uid == my identity uid. */
 async function checkAdmin() {
   S.isAdmin = false;
+  var noAdmin = false;
   try {
     var doc = await db.collection('admins').doc('master').get();
     if (doc.exists && doc.data().uid === (S.linkedUid || S.uid)) S.isAdmin = true;
+    noAdmin = !doc.exists;
   } catch (e) { /* not admin or offline */ }
   var b = $('btn-admin');
   if (b) b.classList.toggle('hidden', !S.isAdmin);
+  var cb = $('btn-claim-admin');
+  if (cb) cb.classList.toggle('hidden', S.isAdmin || !noAdmin);
 }
+$('btn-claim-admin').onclick = async function () {
+  if (!confirm('KalkiGamesYT ke naam se admin claim karun?')) return;
+  try {
+    await db.collection('admins').doc('master').set({ uid: (S.linkedUid || S.uid), claimedAt: Date.now() });
+    toast('Admin ban gaye! 👑');
+    checkAdmin();
+  } catch (e) {
+    toast('Claim nahi hua — KalkiGamesYT username tumhara hona chahiye');
+  }
+};
 function routeAfterUnlock() {
   // called after PIN unlock when session state is ambiguous
   var uid = lsGet(LS.uid);
