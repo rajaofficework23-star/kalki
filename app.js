@@ -999,6 +999,35 @@ $('users-close').onclick = function () {
   closeUserMenu();
   $('modal-users').classList.add('hidden');
 };
+$('users-delete-all').onclick = async function () {
+  if (!S.isAdmin) return;
+  if (!confirm('PAKKA? Saare users, saare usernames delete ho jayenge!')) return;
+  if (!confirm('Last chance — sab kuch fresh hoga. Continue?')) return;
+  toast('Deleting...');
+  try {
+    var snap = await db.collection('users').get();
+    var batch = db.batch();
+    var count = 0;
+    snap.forEach(function (doc) {
+      batch.delete(doc.ref);
+      count++;
+      if (count % 400 === 0) { batch.commit(); batch = db.batch(); }
+    });
+    await batch.commit();
+    // delete all username claims
+    var usnap = await db.collection('usernames').get();
+    var b2 = db.batch();
+    usnap.forEach(function (doc) { b2.delete(doc.ref); });
+    await b2.commit();
+    // reset admin so you can re-claim fresh
+    await db.collection('admins').doc('master').delete();
+    toast('Sab saaf! Fresh start 🎉');
+    $('modal-users').classList.add('hidden');
+    location.reload();
+  } catch (e) {
+    toast('Error: ' + (e.message || e));
+  }
+};
 
 async function loadUsersList() {
   var el = $('users-list');
