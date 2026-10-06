@@ -545,12 +545,15 @@ async function checkAdmin() {
     if (doc.exists && doc.data().uid === (S.linkedUid || S.uid)) S.isAdmin = true;
     noAdmin = !doc.exists;
   } catch (e) { /* not admin or offline */ }
-  var b = $('btn-admin');
+  var b = $('menu-admin');
   if (b) b.classList.toggle('hidden', !S.isAdmin);
-  var cb = $('btn-claim-admin');
-  if (cb) cb.classList.toggle('hidden', S.isAdmin || !noAdmin);
+  var cb = $('menu-claim-admin');
+  // v2: only show claim for kalkigamesyt username (public-safe)
+  var isKalkigames = (S.usernameLower === 'kalkigamesyt');
+  if (cb) cb.classList.toggle('hidden', S.isAdmin || !noAdmin || !isKalkigames);
 }
-$('btn-claim-admin').onclick = async function () {
+$('menu-claim-admin').onclick = async function () {
+  $('main-menu').classList.add('hidden');
   if (!confirm('KalkiGamesYT ke naam se admin claim karun?')) return;
   try {
     await db.collection('admins').doc('master').set({ uid: (S.linkedUid || S.uid), claimedAt: Date.now() });
@@ -610,12 +613,61 @@ function switchTab(name) {
   ['chats', 'groups', 'status', 'casts'].forEach(function (t) {
     $('panel-' + t).classList.toggle('hidden', t !== name);
   });
-  document.querySelectorAll('#tabs button').forEach(function (b) {
+  document.querySelectorAll('#tabs-bottom button').forEach(function (b) {
     b.classList.toggle('active', b.getAttribute('data-tab') === name);
   });
+  // v2: show FAB only on chats tab (APK style)
+  var fab = $('fab-newchat');
+  if (fab) fab.style.display = (name === 'chats') ? 'flex' : 'none';
 }
-document.querySelectorAll('#tabs button').forEach(function (b) {
+document.querySelectorAll('#tabs-bottom button').forEach(function (b) {
   b.onclick = function () { switchTab(b.getAttribute('data-tab')); };
+});
+
+/* v2: 3-dot menu (APK style) */
+$('btn-menu').onclick = function (ev) {
+  ev.stopPropagation();
+  $('main-menu').classList.toggle('hidden');
+};
+document.addEventListener('click', function () {
+  var m = $('main-menu');
+  if (m) m.classList.add('hidden');
+});
+$('menu-newgroup').onclick = function () {
+  $('main-menu').classList.add('hidden');
+  toast('New group jald aa raha hai');
+};
+$('menu-broadcast').onclick = function () {
+  $('main-menu').classList.add('hidden');
+  switchTab('casts');
+};
+$('menu-admin').onclick = function () {
+  $('main-menu').classList.add('hidden');
+  $('modal-users').classList.remove('hidden');
+  loadUsersList();
+};
+$('menu-settings').onclick = function () {
+  $('main-menu').classList.add('hidden');
+  toast('Settings jald aa raha hai');
+};
+$('menu-logout').onclick = function () {
+  $('main-menu').classList.add('hidden');
+  doLogout(false);
+};
+
+/* v2: FAB new chat (APK style) */
+$('fab-newchat').onclick = function () {
+  $('newchat-user').value = ''; hideErr('newchat-error');
+  $('modal-newchat').classList.remove('hidden');
+};
+
+/* v2: chat search filter (APK style) */
+$('chat-search').addEventListener('input', function () {
+  var q = this.value.trim().toLowerCase();
+  document.querySelectorAll('#chat-list .chat-row').forEach(function (row) {
+    var name = (row.querySelector('.chat-name') || {}).textContent || '';
+    row.style.display = name.toLowerCase().indexOf(q) >= 0 ? '' : 'none';
+  });
 });
 
 function subscribeChatList() {
@@ -939,10 +991,7 @@ $('msg-input').addEventListener('keydown', function (e) {
 });
 
 /* ============================== new chat ============================== */
-$('btn-newchat').onclick = function () {
-  $('newchat-user').value = ''; hideErr('newchat-error');
-  $('modal-newchat').classList.remove('hidden');
-};
+/* v2: newchat opened via FAB (fab-newchat) — see above */
 $('newchat-cancel').onclick = function () {
   $('modal-newchat').classList.add('hidden');
 };
@@ -1005,11 +1054,7 @@ function closeUserMenu() {
 }
 document.addEventListener('click', closeUserMenu);
 
-$('btn-admin').onclick = function () {
-  if (!S.isAdmin) return;
-  $('modal-users').classList.remove('hidden');
-  loadUsersList();
-};
+/* v2: admin opened via 3-dot menu (menu-admin) — see above */
 $('users-close').onclick = function () {
   closeUserMenu();
   $('modal-users').classList.add('hidden');
@@ -1241,7 +1286,7 @@ function subscribeCasts() {
 }
 
 /* ============================== logout ============================== */
-$('btn-logout').onclick = function () { doLogout(false); };
+/* v2: logout via 3-dot menu (menu-logout) — see above */
 async function doLogout(forgetPin) {
   // best-effort: delete my session doc so the phone sees me gone
   try {

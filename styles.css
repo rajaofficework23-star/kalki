@@ -58,6 +58,7 @@ body {
 #main-header {
   background: var(--header); padding: 12px 14px; display: flex;
   justify-content: space-between; align-items: center; flex-shrink: 0;
+  position: relative;
 }
 .header-title { font-size: 18px; font-weight: 700; }
 .web-tag {
@@ -65,16 +66,56 @@ body {
   padding: 2px 6px; vertical-align: middle; margin-left: 4px;
 }
 .header-actions button {
-  background: none; border: none; color: var(--text); font-size: 20px;
-  cursor: pointer; padding: 4px 8px;
+  background: none; border: none; color: var(--text); font-size: 22px;
+  cursor: pointer; padding: 4px 8px; line-height: 1;
 }
-#tabs { display: flex; background: var(--header); flex-shrink: 0; }
-#tabs button {
+#main-menu {
+  position: absolute; right: 8px; top: 100%; z-index: 50; min-width: 180px;
+  background: var(--header); border: 1px solid var(--line); border-radius: 8px;
+  overflow: hidden; box-shadow: 0 4px 16px rgba(0,0,0,.5);
+}
+#main-menu button {
+  display: block; width: 100%; text-align: left; background: none; border: none;
+  color: var(--text); padding: 12px 16px; font-size: 14.5px; cursor: pointer;
+}
+#main-menu button:active { background: var(--panel); }
+
+/* chat search bar (APK style) */
+#chat-search-bar {
+  background: var(--header); padding: 8px 12px; flex-shrink: 0;
+}
+#chat-search {
+  width: 100%; border-radius: 20px; border: none; background: var(--bg);
+  color: var(--text); padding: 10px 16px; font-size: 14px;
+}
+#chat-search::placeholder { color: var(--muted); }
+
+/* bottom tabs (APK style) */
+#tabs-bottom {
+  display: flex; background: var(--header); flex-shrink: 0;
+  border-top: 1px solid var(--line);
+}
+#tabs-bottom button {
   flex: 1; background: none; border: none; color: var(--muted);
-  padding: 12px; font-size: 14px; font-weight: 600; cursor: pointer;
-  border-bottom: 3px solid transparent;
+  padding: 8px 4px 10px; font-size: 11px; font-weight: 600; cursor: pointer;
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  border-top: 3px solid transparent;
 }
-#tabs button.active { color: var(--accent); border-bottom-color: var(--accent); }
+#tabs-bottom button span { font-size: 11px; }
+#tabs-bottom button.active { color: var(--accent); border-top-color: var(--accent); }
+
+/* floating new-chat button (APK style) */
+#fab-newchat {
+  position: absolute; right: 18px; bottom: 78px; width: 56px; height: 56px;
+  border-radius: 50%; background: var(--accent); color: #062b25;
+  border: none; font-size: 26px; font-weight: 700; cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0,0,0,.4); z-index: 5;
+  display: flex; align-items: center; justify-content: center;
+}
+#fab-newchat:active { background: var(--accent-d); }
+
+/* legacy top tabs (hidden, kept for compat) */
+#tabs { display: none; }
 #tab-panels { flex: 1; overflow: hidden; display: flex; flex-direction: column; }
 .panel { flex: 1; overflow-y: auto; }
 
