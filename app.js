@@ -102,8 +102,8 @@ async function pinCheck(pin) {
   } catch (e) { return false; }
 }
 function pinNeeded() {
-  if (sessionStorage.getItem('kc_unlocked') === '1') return false;
-  return !!lsGet(LS.pin);
+  // v2: PIN disabled per user request (was asking repeatedly)
+  return false;
 }
 function showPinScreen(isSetup) {
   $('pin-sub').textContent = isSetup

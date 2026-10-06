@@ -87,18 +87,20 @@
     <header id="main-header">
       <div class="header-title">💬 KalkiChat <span class="web-tag">Web</span></div>
       <div class="header-actions">
-        <button id="btn-admin" title="All users" class="hidden">👥</button>
-        <button id="btn-claim-admin" title="Claim admin" class="hidden">👑</button>
-        <button id="btn-newchat" title="Nayi chat">✚</button>
-        <button id="btn-logout" title="Logout">⏻</button>
+        <button id="btn-menu" title="Menu">⋮</button>
+      </div>
+      <div id="main-menu" class="hidden">
+        <button id="menu-newgroup">New group</button>
+        <button id="menu-broadcast">📢 Broadcast</button>
+        <button id="menu-admin" class="hidden">👑 Admin</button>
+        <button id="menu-claim-admin" class="hidden">👑 Claim admin</button>
+        <button id="menu-settings">Settings</button>
+        <button id="menu-logout">Logout</button>
       </div>
     </header>
-    <nav id="tabs">
-      <button data-tab="chats" class="active">Chats</button>
-      <button data-tab="groups">Groups</button>
-      <button data-tab="status">Status</button>
-      <button data-tab="casts">📢</button>
-    </nav>
+    <div id="chat-search-bar">
+      <input id="chat-search" type="text" placeholder="🔍 Search chats..." autocomplete="off">
+    </div>
     <div id="tab-panels">
       <div id="panel-chats" class="panel"><div id="chat-list"></div></div>
       <div id="panel-groups" class="panel hidden"><div id="group-list"></div></div>
@@ -108,6 +110,13 @@
       </div>
       <div id="panel-casts" class="panel hidden"><div id="cast-list"></div></div>
     </div>
+    <button id="fab-newchat" title="Nayi chat">✚</button>
+    <nav id="tabs-bottom">
+      <button data-tab="chats" class="active">💬<span>Chats</span></button>
+      <button data-tab="groups">👥<span>Groups</span></button>
+      <button data-tab="status">⭕<span>Status</span></button>
+      <button data-tab="casts">📢<span>Casts</span></button>
+    </nav>
   </div>
 
   <!-- Conversation -->
