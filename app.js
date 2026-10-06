@@ -952,13 +952,23 @@ $('newchat-go').onclick = async function () {
   if (!name) return;
   $('newchat-go').disabled = true;
   try {
-    var lower = name.toLowerCase();
-    var claim = await db.collection('usernames').doc(lower).get();
-    if (!claim.exists) { showErr('newchat-error', 'Username nahi mila'); return; }
-    var otherUid = claim.data().uid;
-    if (otherUid === S.uid) { showErr('newchat-error', 'Khud se chat nahi'); return; }
-    var otherDoc = await db.collection('users').doc(otherUid).get();
-    if (!otherDoc.exists) { showErr('newchat-error', 'User nahi mila'); return; }
+    var otherUid, otherDoc, lower;
+    // v2: If input looks like a UID (28-char alphanumeric), do direct lookup
+    if (/^[A-Za-z0-9_-]{20,}$/.test(name)) {
+      otherUid = name;
+      if (otherUid === S.uid) { showErr('newchat-error', 'Khud se chat nahi kar sakte'); return; }
+      otherDoc = await db.collection('users').doc(otherUid).get();
+      if (!otherDoc.exists) { showErr('newchat-error', 'Yeh UID nahi mila'); return; }
+      lower = ((otherDoc.data() || {}).username || '').toLowerCase();
+    } else {
+      lower = name.toLowerCase();
+      var claim = await db.collection('usernames').doc(lower).get();
+      if (!claim.exists) { showErr('newchat-error', 'Yeh username nahi mila'); return; }
+      otherUid = claim.data().uid;
+      if (otherUid === S.uid) { showErr('newchat-error', 'Khud se chat nahi kar sakte'); return; }
+      otherDoc = await db.collection('users').doc(otherUid).get();
+      if (!otherDoc.exists) { showErr('newchat-error', 'User nahi mila'); return; }
+    }
     var otherPub = otherDoc.data().hpkePublicKey;
     var otherName = otherDoc.data().username || name;
     if (!otherPub) { showErr('newchat-error', 'Unki key nahi mili'); return; }
@@ -977,7 +987,12 @@ $('newchat-go').onclick = async function () {
     $('modal-newchat').classList.add('hidden');
     openChat('chat', chatId);
   } catch (e) {
-    showErr('newchat-error', 'Network error');
+    var msg = (e && e.message) ? e.message : String(e);
+    if (msg.indexOf('PERMISSION_DENIED') >= 0 || msg.indexOf('permission') >= 0) {
+      showErr('newchat-error', 'Permission denied: ' + msg.substring(0, 120));
+    } else {
+      showErr('newchat-error', msg.substring(0, 200));
+    }
   } finally {
     $('newchat-go').disabled = false;
   }
@@ -1086,6 +1101,9 @@ function toggleUserMenu(wrap, uid, data) {
   closeUserMenu();
   var menu = document.createElement('div');
   menu.className = 'user-menu';
+  var b0 = document.createElement('button');
+  b0.textContent = '💬 Chat shuru karo';
+  b0.onclick = function () { closeUserMenu(); startChatWithUid(uid, data); };
   var b1 = document.createElement('button');
   b1.textContent = 'Reset password';
   b1.onclick = function () { closeUserMenu(); adminResetPassword(uid); };
@@ -1093,10 +1111,41 @@ function toggleUserMenu(wrap, uid, data) {
   b2.textContent = 'Remove user';
   b2.className = 'danger';
   b2.onclick = function () { closeUserMenu(); adminRemoveUser(uid, data); };
+  menu.appendChild(b0);
   menu.appendChild(b1);
   menu.appendChild(b2);
   wrap.appendChild(menu);
   openUserMenuEl = menu;
+}
+
+/* v2: Start chat directly with a UID (from admin panel tap) — no username lookup needed */
+async function startChatWithUid(otherUid, otherData) {
+  try {
+    if (otherUid === S.uid) { toast('Khud se chat nahi'); return; }
+    var otherDoc = otherData ? { exists: true, data: function() { return otherData; } }
+                             : await db.collection('users').doc(otherUid).get();
+    if (!otherDoc.exists) { toast('User nahi mila'); return; }
+    var d = otherDoc.data() || {};
+    var otherPub = d.hpkePublicKey;
+    var otherName = d.username || otherUid.substring(0, 8);
+    if (!otherPub) { toast('Unki key nahi mili'); return; }
+    var parts = [S.uid, otherUid].sort();
+    var chatId = parts[0] + '_' + parts[1];
+    var chatRef = db.collection('chats').doc(chatId);
+    var existing = await chatRef.get();
+    if (!existing.exists) {
+      var names = {}, unames = {}, pubs = {};
+      names[S.uid] = S.username; names[otherUid] = otherName;
+      unames[S.uid] = S.usernameLower; unames[otherUid] = (d.username || '').toLowerCase();
+      pubs[S.uid] = S.pubB64; pubs[otherUid] = otherPub;
+      await chatRef.set({ participants: parts, names: names, unames: unames,
+        pubkeys: pubs, createdAt: Date.now(), lastTs: 0 });
+    }
+    $('modal-users').classList.add('hidden');
+    openChat('chat', chatId);
+  } catch (e) {
+    toast('Chat nahi khula: ' + (e && e.message ? e.message : e));
+  }
 }
 
 async function adminResetPassword(uid) {
