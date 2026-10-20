@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Truck Wala Music — Indian Truck Driver Playlist</title>
+<meta name="description" content="Play Punjabi, Hindi and Bhojpuri highway songs on Truck Wala Music, the free Indian truck driver playlist website. No signup—open and press play.">
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  body {
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+    background:#faf7f1; color:#2b2620; line-height:1.6;
+  }
+  .wrap { max-width:720px; margin:0 auto; padding:0 20px; }
+
+  header.hero { text-align:center; padding:44px 20px 8px; }
+  .eyebrow {
+    display:inline-block; font-size:14px; letter-spacing:1.5px; text-transform:uppercase;
+    color:#b4530a; font-weight:700; margin-bottom:10px;
+  }
+  header.hero h1 { font-size:34px; line-height:1.25; margin-bottom:14px; }
+  header.hero p { font-size:16.5px; color:#5a5145; max-width:600px; margin:0 auto; }
+
+  /* player */
+  .card {
+    background:#fff; border:1px solid #e8dfcd; border-radius:16px;
+    padding:14px; margin-top:22px; box-shadow:0 6px 24px rgba(120,90,40,.10);
+  }
+  .video-wrap { position:relative; width:100%; padding-top:56.25%; border-radius:10px; overflow:hidden; background:#000; }
+  .video-wrap iframe { position:absolute; inset:0; width:100%; height:100%; border:0; }
+  .now { margin-top:12px; font-size:14px; color:#8a7c63; }
+  #nowTitle { display:block; font-size:16px; color:#2b2620; font-weight:600; margin-top:2px; line-height:1.4; }
+  .seek-row { display:flex; align-items:center; gap:10px; margin-top:10px; }
+  .seek-row span { font-size:12px; color:#8a7c63; min-width:42px; text-align:center; font-variant-numeric:tabular-nums; }
+  #seek { flex:1; -webkit-appearance:none; appearance:none; height:8px; border-radius:6px;
+    background:#e8dfcd; outline:none; cursor:pointer; }
+  #seek::-webkit-slider-thumb { -webkit-appearance:none; width:24px; height:24px; border-radius:50%;
+    background:#d96c12; box-shadow:0 2px 8px rgba(217,108,18,.45); }
+  #seek::-moz-range-thumb { width:24px; height:24px; border:none; border-radius:50%; background:#d96c12; }
+  .controls { display:flex; justify-content:center; align-items:center; gap:18px; margin-top:14px; }
+  button {
+    font-family:inherit; border:none; border-radius:999px; cursor:pointer; font-weight:700;
+    background:#d96c12; color:#fff;
+  }
+  button:active { transform:scale(.96); }
+  #playBtn { width:88px; height:88px; font-size:17px; line-height:1.3; box-shadow:0 6px 18px rgba(217,108,18,.4); }
+  #prevBtn, #nextBtn { width:60px; height:60px; font-size:20px; background:#efe7d3; color:#7a5a28; }
+  .msg { min-height:20px; margin-top:8px; font-size:13px; color:#b0413e; text-align:center; }
+
+  /* song list */
+  .pl-title { font-size:19px; margin:30px 0 10px; }
+  #queue { list-style:none; }
+  #queue li {
+    padding:11px 14px; border-radius:10px; margin-bottom:8px; background:#fff;
+    border:1px solid #e8dfcd; font-size:14.5px; cursor:pointer; line-height:1.4;
+    display:flex; gap:10px; align-items:center;
+  }
+  #queue li .n { color:#d96c12; font-weight:700; min-width:24px; }
+  #queue li.playing { border-color:#d96c12; background:#fdf3e6; }
+
+  /* features */
+  .features { display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; margin-top:28px; }
+  .feature { background:#fff; border:1px solid #e8dfcd; border-radius:14px; padding:18px 16px; }
+  .feature h3 { font-size:16px; margin-bottom:8px; }
+  .feature p { font-size:14px; color:#5a5145; }
+  @media (max-width:560px){ .features { grid-template-columns:1fr; } }
+
+  /* about / faq */
+  .about { margin-top:34px; }
+  .about h2 { font-size:22px; margin-bottom:14px; }
+  .qa { margin-bottom:16px; }
+  .qa h3 { font-size:16.5px; margin-bottom:4px; }
+  .qa p { font-size:15px; color:#5a5145; }
+
+  .ytm-btn {
+    display:block; text-align:center; margin:26px 0 6px; padding:15px 20px;
+    background:#d96c12; color:#fff; text-decoration:none; border-radius:999px;
+    font-weight:700; font-size:16px;
+  }
+
+  .details { margin-top:30px; background:#fff; border:1px solid #e8dfcd; border-radius:14px; padding:18px; }
+  .details h2 { font-size:18px; margin-bottom:10px; }
+  .details ul { list-style:none; font-size:14.5px; color:#5a5145; }
+  .details li { margin-bottom:8px; }
+  .details b { color:#2b2620; }
+
+  footer { text-align:center; margin:34px 0 30px; color:#a3937a; font-size:13px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="hero">
+    <span class="eyebrow">Truck wala music, one tap away</span>
+    <h1>The Indian truck driver playlist for long roads</h1>
+    <p>Truck Wala Music is a free playlist website for the Punjabi, Hindi, Bhojpuri and 90s Bollywood highway songs heard in truck cabins and roadside dhabas across India. Open the page, press play and keep the music running—there is no signup or app to install.</p>
+  </header>
+
+  <div class="card">
+    <div class="video-wrap"><div id="player"></div></div>
+    <div class="now">Now playing:<span id="nowTitle">Press play to start the music…</span></div>
+    <div class="seek-row">
+      <span id="cur">0:00</span>
+      <input type="range" id="seek" min="0" max="1000" value="0" aria-label="Seek">
+      <span id="dur">0:00</span>
+    </div>
+    <div class="controls">
+      <button id="prevBtn" title="Skip back">⏮</button>
+      <button id="playBtn">▶<br>Play</button>
+      <button id="nextBtn" title="Skip forward">⏭</button>
+    </div>
+    <div class="msg" id="msg"></div>
+  </div>
+
+  <h2 class="pl-title">🎶 Songs in this playlist</h2>
+  <ul id="queue"></ul>
+
+  <section class="features">
+    <div class="feature">
+      <h3>Made for the highway</h3>
+      <p>A non-stop truck driver playlist with simple controls that work on mobile and desktop.</p>
+    </div>
+    <div class="feature">
+      <h3>Desi songs in one mix</h3>
+      <p>Punjabi energy, Hindi favourites, Bhojpuri tracks and nostalgic Bollywood road songs.</p>
+    </div>
+    <div class="feature">
+      <h3>No account needed</h3>
+      <p>Start listening here, or open the same playlist on YouTube Music whenever you want.</p>
+    </div>
+  </section>
+
+  <section class="about">
+    <h2>About this truck wala playlist</h2>
+    <div class="qa">
+      <h3>What is Truck Wala Music?</h3>
+      <p>It is a browser-based Indian truck music player built for quick, uninterrupted listening without registration.</p>
+    </div>
+    <div class="qa">
+      <h3>Does it work on a phone?</h3>
+      <p>Yes. The player is designed for mobile screens, with large play, skip and seek controls for easy use.</p>
+    </div>
+    <div class="qa">
+      <h3>Where does the music play from?</h3>
+      <p>The songs play through YouTube. You can also open the full truck driver playlist directly on YouTube Music.</p>
+    </div>
+  </section>
+
+  <a class="ytm-btn" id="ytmLink" href="#" target="_blank" rel="noopener">▶ Open the playlist on YouTube Music</a>
+
+  <section class="details">
+    <h2>Additional Details</h2>
+    <ul>
+      <li><b>Name:</b> Truck Wala Music — Indian Truck Driver Playlist</li>
+      <li><b>Description:</b> Play Punjabi, Hindi and Bhojpuri highway songs on Truck Wala Music, the free Indian truck driver playlist website. No signup—open and press play.</li>
+    </ul>
+  </section>
+
+  <footer>Truck Wala Music — one tap away.</footer>
+
+</div>
+
+<script src="https://www.youtube.com/iframe_api"></script>
+<script>
+var PLAYLIST_ID = 'PLMRKdK25AuPVjHl9Kdb-gkBy0Cm7Zi2xo';
+var player = null;
+var isPlaying = false, userSeeking = false, duration = 0, seekTimer = null;
+var consecutiveErrors = 0, queueTitles = {};
+
+function $(id){ return document.getElementById(id); }
+function showMsg(t){ $('msg').textContent = t; }
+function fmt(s){ s = Math.max(0, Math.floor(s||0)); var m = Math.floor(s/60), ss = s%60; return m + ':' + (ss<10?'0':'') + ss; }
+function ytmUrl(){ return 'https://music.youtube.com/playlist?list=' + PLAYLIST_ID; }
+
+function onYouTubeIframeAPIReady(){
+  player = new YT.Player('player', {
+    width:'100%', height:'100%',
+    playerVars:{ playsinline:1, rel:0, modestbranding:1 },
+    events:{ onReady:onPlayerReady, onStateChange:onStateChange, onError:onPlayerError }
+  });
+}
+
+function onPlayerReady(){
+  $('ytmLink').href = ytmUrl();
+  player.cuePlaylist({ listType:'playlist', list:PLAYLIST_ID });
+  waitForPlaylist(0);
+}
+
+function waitForPlaylist(tries){
+  var ids = player.getPlaylist && player.getPlaylist();
+  if (ids && ids.length){ buildQueue(ids); }
+  else if (tries < 20){ setTimeout(function(){ waitForPlaylist(tries+1); }, 500); }
+  else { showMsg('Playlist could not be loaded. Check your internet and try again.'); }
+}
+
+function buildQueue(ids){
+  var ul = $('queue'); ul.innerHTML = '';
+  ids.forEach(function(vid, i){
+    var li = document.createElement('li');
+    li.innerHTML = '<span class="n">' + (i+1) + '</span><span class="t">Song ' + (i+1) + '</span>';
+    li.onclick = function(){ consecutiveErrors = 0; player.playVideoAt(i); };
+    ul.appendChild(li);
+  });
+  fetchTitlesBatch(ids, 0);
+}
+
+function fetchTitlesBatch(ids, idx){
+  var batch = ids.slice(idx, idx+5);
+  batch.forEach(function(vid, k){
+    fetch('https://www.youtube.com/oembed?url=' + encodeURIComponent('https://www.youtube.com/watch?v=' + vid) + '&format=json')
+      .then(function(r){ return r.ok ? r.json() : null; })
+      .then(function(j){
+        if (j && j.title){
+          queueTitles[vid] = j.title;
+          var li = $('queue').children[idx+k];
+          if (li) li.querySelector('.t').textContent = j.title;
+          if (getCurrentVideoId() === vid) $('nowTitle').textContent = j.title;
+        }
+      }).catch(function(){});
+  });
+  if (idx + 5 < ids.length) setTimeout(function(){ fetchTitlesBatch(ids, idx+5); }, 800);
+}
+
+function getCurrentVideoId(){
+  try { return player.getVideoData && player.getVideoData().video_id; } catch(e){ return null; }
+}
+
+function highlightCurrent(){
+  var idx = player.getPlaylistIndex();
+  var items = $('queue').children;
+  for (var i=0;i<items.length;i++){ items[i].classList.toggle('playing', i===idx); }
+  var cur = items[idx]; if (cur) cur.scrollIntoView({block:'nearest', behavior:'smooth'});
+}
+
+function onStateChange(e){
+  if (e.data === YT.PlayerState.PLAYING){
+    isPlaying = true; consecutiveErrors = 0; setPlayBtn();
+    var d = player.getVideoData();
+    $('nowTitle').textContent = queueTitles[d.video_id] || d.title || 'Song';
+    highlightCurrent();
+    startSeekTimer();
+  } else if (e.data === YT.PlayerState.PAUSED){
+    isPlaying = false; setPlayBtn(); stopSeekTimer();
+  } else if (e.data === YT.PlayerState.CUED){
+    duration = player.getDuration() || 0;
+    $('dur').textContent = fmt(duration);
+  }
+}
+
+function onPlayerError(e){
+  var code = e.data, why = '';
+  if (code === 100) why = 'this video is not available on YouTube';
+  else if (code === 101 || code === 150) why = 'embedding was disabled by the video owner';
+  else if (code === 2) why = 'the playlist or video link looks wrong';
+  else if (code === 5) why = 'the HTML5 player hit a problem';
+  else why = 'an unknown problem occurred';
+  showMsg('Error ' + code + ': ' + why + '. Skipping to the next song…');
+  consecutiveErrors++;
+  if (consecutiveErrors < 10){
+    setTimeout(function(){ if (player && player.nextVideo) player.nextVideo(); }, 900);
+  } else {
+    showMsg('Error: 10 songs in a row were skipped — too many videos in this playlist are embed-blocked.');
+  }
+}
+
+function setPlayBtn(){
+  $('playBtn').innerHTML = isPlaying ? '❚❚<br>Pause' : '▶<br>Play';
+}
+
+$('playBtn').onclick = function(){
+  if (!player) return;
+  if (isPlaying) player.pauseVideo();
+  else {
+    showMsg('');
+    if (player.getPlaylistIndex && player.getPlaylistIndex() === -1)
+      player.loadPlaylist({listType:'playlist', list:PLAYLIST_ID});
+    player.playVideo();
+  }
+};
+$('nextBtn').onclick = function(){ if (player){ consecutiveErrors = 0; player.nextVideo(); } };
+$('prevBtn').onclick = function(){ if (player){ consecutiveErrors = 0; player.previousVideo(); } };
+
+$('seek').addEventListener('input', function(){
+  userSeeking = true;
+  $('cur').textContent = fmt((this.value/1000) * duration);
+});
+$('seek').addEventListener('change', function(){
+  if (player && duration > 0) player.seekTo((this.value/1000) * duration, true);
+  userSeeking = false;
+});
+
+function startSeekTimer(){
+  stopSeekTimer();
+  duration = player.getDuration() || duration;
+  $('dur').textContent = fmt(duration);
+  seekTimer = setInterval(function(){
+    if (userSeeking || !player || !player.getCurrentTime) return;
+    var c = player.getCurrentTime();
+    if (duration > 0){
+      $('seek').value = Math.round((c/duration)*1000);
+      $('cur').textContent = fmt(c);
+    }
+  }, 500);
+}
+function stopSeekTimer(){ if (seekTimer){ clearInterval(seekTimer); seekTimer = null; } }
+</script>
+</body>
+</html>
